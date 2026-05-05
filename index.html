@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKU Lookup Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #141720;
+    --border: #1e2330;
+    --accent: #00e5a0;
+    --accent2: #0090ff;
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --danger: #ff4560;
+    --warn: #ffb400;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .search-wrap {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 56px 16px 20px;
+    font-size: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.08);
+  }
+
+  .search-wrap input::placeholder {
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-size: 14px;
+  }
+
+  .search-icon {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 20px;
+    pointer-events: none;
+  }
+
+  /* Result Card */
+  .result-card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .result-card.visible { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    gap: 12px;
+  }
+
+  .product-name {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .sku-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,160,0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  .price-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .currency {
+    font-size: 14px;
+    color: var(--muted);
+    margin-left: 2px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .info-item label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .info-item .value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .stock-badge.in-stock {
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,160,0.2);
+  }
+
+  .stock-badge.low-stock {
+    background: rgba(255,180,0,0.1);
+    color: var(--warn);
+    border: 1px solid rgba(255,180,0,0.2);
+  }
+
+  .stock-badge.out-of-stock {
+    background: rgba(255,69,96,0.1);
+    color: var(--danger);
+    border: 1px solid rgba(255,69,96,0.2);
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .description-box {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-top: 14px;
+  }
+
+  /* Not found */
+  .not-found {
+    width: 100%;
+    max-width: 680px;
+    text-align: center;
+    padding: 40px;
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+  .not-found.visible { display: block; }
+  .not-found .icon { font-size: 40px; margin-bottom: 12px; }
+  .not-found p { color: var(--muted); font-size: 15px; }
+  .not-found strong { color: var(--danger); font-family: 'JetBrains Mono', monospace; }
+
+  /* Suggestions */
+  .suggestions {
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 24px;
+  }
+
+  .suggestions p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tag:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⬡ vROOT · Product Lookup</div>
+  <h1>SKU <span>Search</span></h1>
+</header>
+
+<div class="search-wrap">
+  <input type="text" id="skuInput" placeholder="Type SKU code e.g. GW-001" autocomplete="off" />
+  <span class="search-icon">⌕</span>
+</div>
+
+<div class="suggestions">
+  <p>Try these</p>
+  <div class="tags" id="tagList"></div>
+</div>
+
+<div class="result-card" id="resultCard">
+  <div class="result-header">
+    <div>
+      <div class="product-name" id="resName"></div>
+      <div class="sku-badge" id="resSku"></div>
+    </div>
+    <div>
+      <div class="price-tag" id="resPrice"></div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="info-grid">
+    <div class="info-item">
+      <label>Category</label>
+      <div class="value" id="resCategory"></div>
+    </div>
+    <div class="info-item">
+      <label>Stock Status</label>
+      <div id="resStock"></div>
+    </div>
+    <div class="info-item">
+      <label>Units Available</label>
+      <div class="value" id="resUnits"></div>
+    </div>
+    <div class="info-item">
+      <label>Brand</label>
+      <div class="value" id="resBrand"></div>
+    </div>
+  </div>
+  <div class="description-box" id="resDesc"></div>
+</div>
+
+<div class="not-found" id="notFound">
+  <div class="icon">⊘</div>
+  <p>No product found for SKU <strong id="notFoundSku"></strong></p>
+  <p style="margin-top:8px; font-size:13px;">Double-check the code or try one of the suggestions above.</p>
+</div>
+
+<script>
+const products = [
+  { sku: "GW-001", name: "Classic Oak Dining Table", price: "4,500 EGP", category: "Furniture", brand: "Golden Wood", stock: "in-stock", units: 12, desc: "Solid oak dining table with hand-finished surface. Seats 6 comfortably. Dimensions: 180×90×76 cm." },
+  { sku: "GW-002", name: "Walnut Bookshelf 5-Tier", price: "2,800 EGP", category: "Furniture", brand: "Golden Wood", stock: "in-stock", units: 8, desc: "5-tier open bookshelf in walnut veneer. Adjustable shelves. Dimensions: 80×30×180 cm." },
+  { sku: "GW-003", name: "Mahogany Office Desk", price: "6,200 EGP", category: "Office", brand: "Golden Wood", stock: "low-stock", units: 3, desc: "Executive mahogany desk with built-in cable management and 2 drawers. Dimensions: 160×75×78 cm." },
+  { sku: "GW-004", name: "Pine Bedside Table", price: "950 EGP", category: "Bedroom", brand: "Golden Wood", stock: "in-stock", units: 24, desc: "Simple pine bedside table with one drawer and open shelf. Dimensions: 45×40×55 cm." },
+  { sku: "GW-005", name: "Teak Garden Chair", price: "1,750 EGP", category: "Outdoor", brand: "Golden Wood", stock: "out-of-stock", units: 0, desc: "Weather-resistant teak garden chair. Foldable design for easy storage. Weight capacity: 120 kg." },
+  { sku: "GW-006", name: "Ash Wood TV Unit", price: "3,300 EGP", category: "Living Room", brand: "Golden Wood", stock: "in-stock", units: 6, desc: "Modern TV unit in ash wood with 4 compartments and cable routing holes. Fits TVs up to 65 inches." },
+  { sku: "GW-007", name: "Cedar Wardrobe 3-Door", price: "8,900 EGP", category: "Bedroom", brand: "Golden Wood", stock: "low-stock", units: 2, desc: "3-door cedar wardrobe with mirror on center panel. Internal rail and 4 shelves. H:210 W:150 D:60 cm." },
+  { sku: "GW-008", name: "Bamboo Kitchen Stool", price: "680 EGP", category: "Kitchen", brand: "Golden Wood", stock: "in-stock", units: 30, desc: "Lightweight bamboo kitchen stool. Height: 65 cm. Anti-slip feet. Max weight: 100 kg." },
+];
+
+const stockLabels = {
+  "in-stock":     { label: "In Stock",     cls: "in-stock" },
+  "low-stock":    { label: "Low Stock",    cls: "low-stock" },
+  "out-of-stock": { label: "Out of Stock", cls: "out-of-stock" },
+};
+
+// Populate tags
+const tagList = document.getElementById('tagList');
+products.forEach(p => {
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.textContent = p.sku;
+  tag.onclick = () => {
+    document.getElementById('skuInput').value = p.sku;
+    search(p.sku);
+  };
+  tagList.appendChild(tag);
+});
+
+function search(query) {
+  const q = query.trim().toUpperCase();
+  const resultCard = document.getElementById('resultCard');
+  const notFound = document.getElementById('notFound');
+
+  resultCard.classList.remove('visible');
+  notFound.classList.remove('visible');
+
+  if (!q) return;
+
+  const product = products.find(p => p.sku === q);
+
+  if (product) {
+    document.getElementById('resName').textContent = product.name;
+    document.getElementById('resSku').textContent = product.sku;
+    document.getElementById('resPrice').textContent = product.price;
+    document.getElementById('resCategory').textContent = product.category;
+    document.getElementById('resUnits').textContent = product.units + ' units';
+    document.getElementById('resBrand').textContent = product.brand;
+    document.getElementById('resDesc').textContent = product.desc;
+
+    const s = stockLabels[product.stock];
+    document.getElementById('resStock').innerHTML =
+      `<span class="stock-badge ${s.cls}"><span class="dot"></span>${s.label}</span>`;
+
+    resultCard.classList.add('visible');
+  } else {
+    document.getElementById('notFoundSku').textContent = q;
+    notFound.classList.add('visible');
+  }
+}
+
+document.getElementById('skuInput').addEventListener('input', e => {
+  search(e.target.value);
+});
+</script>
+</body>
+</html>
